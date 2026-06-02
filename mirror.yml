@@ -22,10 +22,10 @@ assets:
     - "^sccache-v.*-x86_64-apple-darwin\\.tar\\.gz$"
   darwin/arm64:
     - "^sccache-v.*-aarch64-apple-darwin\\.tar\\.gz$"
-  # windows/amd64:
-  #   - "^sccache-v.*-x86_64-pc-windows-msvc\\.tar\\.gz$"
-  # windows/arm64:
-  #   - "^sccache-v.*-aarch64-pc-windows-msvc\\.tar\\.gz$"
+  windows/amd64:
+    - "^sccache-v.*-x86_64-pc-windows-msvc\\.tar\\.gz$"
+  windows/arm64:
+    - "^sccache-v.*-aarch64-pc-windows-msvc\\.tar\\.gz$"
 
 asset_type:
   type: archive
@@ -69,12 +69,12 @@ platforms:
     runner: macos-14
   darwin/arm64:
     runner: macos-14
-  # windows/amd64:
-  #   runner: windows-latest
-  #   shell: pwsh
-  # windows/arm64:
-  #   runner: windows-11-arm
-  #   shell: pwsh
+  windows/amd64:
+    runner: windows-latest
+    shell: pwsh
+  windows/arm64:
+    runner: windows-11-arm
+    shell: pwsh
 
 notify:
   discord:
