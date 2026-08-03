@@ -1,0 +1,226 @@
+extends: ../mirror-base.yml
+
+name: geckodriver
+
+# Logical index package `mozilla/geckodriver` at the physical path
+# `ghcr.io/ocx-contrib/mozilla/geckodriver` — slash segments, never hyphen-
+# flattened. The first segment must be this repo's own GitHub owner:
+# GITHUB_TOKEN only authorises packages owned by the repo the workflow runs in.
+#
+# Vendor namespace: upstream's org handle IS the vendor identity (Mozilla), so
+# it names the namespace directly — same reasoning as the sibling `sccache`.
+target:
+  registry: ghcr.io
+  repository: ocx-contrib/mozilla/geckodriver
+
+source:
+  type: github_release
+  owner: mozilla
+  repo: geckodriver
+  tag_pattern: "^v(?P<version>\\d+\\.\\d+\\.\\d+)$"
+
+# `build_timestamp` is INHERITED as `date` from ../mirror-base.yml — checked,
+# not assumed. Nothing here forces the documented `none` exception: this
+# tag_pattern admits bare semver only, so no version can already carry a
+# `+build` segment.
+
+# ─── libc gate (Phase 3.5) — the evidence, not the conclusion ───────────────
+#
+# Mozilla builds geckodriver's Linux binaries FULLY STATIC on both arches.
+# Measured on v0.37.1 (newest) and re-checked on v0.36.0 (oldest in range):
+#
+#   $ file x-geckodriver-v0.37.1-linux64/geckodriver
+#   ELF 64-bit LSB pie executable, x86-64, static-pie linked, not stripped
+#   $ file x-geckodriver-v0.37.1-linux-aarch64/geckodriver
+#   ELF 64-bit LSB executable, ARM aarch64, statically linked, not stripped
+#   $ file x-geckodriver-v0.36.0-linux64/geckodriver
+#   ELF 64-bit LSB pie executable, x86-64, static-pie linked, not stripped
+#   $ file x-geckodriver-v0.36.0-linux-aarch64/geckodriver
+#   ELF 64-bit LSB executable, ARM aarch64, statically linked, not stripped
+#
+#   readelf -l <each> | grep -A1 INTERP  → no PT_INTERP on any of the four
+#   readelf -d <each> | grep NEEDED      → no DT_NEEDED on any of the four
+#   readelf -V <each> | grep -o 'GLIBC_[0-9.]*'  → nothing (no versioned
+#                                                  glibc symbols to reach)
+#
+# No PT_INTERP and no DT_NEEDED means the artifact requires nothing of the
+# host userland, so both Linux keys are BARE. `os.features` states what an
+# artifact REQUIRES — tagging a static build `+libc.musl` would be a false
+# requirement that hid it from every glibc host. There is no gnu/musl twin to
+# split against: upstream ships exactly one Linux tarball per arch.
+#
+# The measurement MATCHES ../mirror-base.yml's (sccache is static too), so the
+# base's bare keys and its alpine legs are correct for this package as well.
+# `platforms:` is nevertheless restated below — see the comment there; the
+# reason is the staged rollout, not a libc disagreement.
+#
+# ─── Scope (verified BOTH ways on v0.36.0, v0.37.0 and v0.37.1 — the whole
+#     in-range set) ─────────────────────────────────────────────────────────
+#
+# Upstream's naming is BESPOKE MOZILLA, not Rust target triples:
+# `linux64` / `linux32` / `linux-aarch64` / `macos` / `macos-aarch64` /
+# `win32` / `win64` / `win-aarch64`, all lowercase. A generic triple regex
+# matches nothing here.
+#
+# Each pattern below was matched against the FULL asset list of every in-range
+# release: exactly one hit per platform per release, no zeros, no ambiguity.
+# A pattern matching zero is SILENTLY SKIPPED rather than an error, so this
+# check is the only thing between a typo and a green run missing a platform.
+#
+# Upstream also publishes, and this mirror deliberately does not carry:
+#   *-linux{64,32,-aarch64}.tar.gz.asc   — detached GPG signatures, not
+#                                          platform binaries. The `\.tar\.gz$`
+#                                          tail is what excludes them; a
+#                                          looser tail would match TWO assets
+#                                          per Linux platform and fail the
+#                                          whole version with an ambiguity
+#                                          error.
+#   geckodriver-v*-linux32.tar.gz        — 32-bit x86. Not declarable: OCX's
+#   geckodriver-v*-win32.zip               `Architecture` enum has exactly two
+#                                          supported variants, Amd64 and
+#                                          Arm64 ("386".parse::<Architecture>()
+#                                          is an error), and there is no
+#                                          32-bit GitHub runner either.
+#                                          ⚠️ `linux32` ALSO disappeared
+#                                          upstream after v0.36.0 — v0.37.0
+#                                          and v0.37.1 ship none — so even a
+#                                          hypothetical 386 platform would
+#                                          resolve zero assets on the newest
+#                                          releases and be silently skipped.
+#                                          `win32` is still published on all
+#                                          three; it is excluded on the arch
+#                                          grounds alone.
+#
+# ⚠️ `-macos\.tar\.gz$` is END-ANCHORED on purpose: `-macos-aarch64.tar.gz`
+# would otherwise match the darwin/amd64 pattern too, giving two hits.
+# (The two macOS assets are in fact byte-identical — sha256
+# d02b3f7003f999caf90974a2ef5da0286c05d01cee19112c86846d759fdba4f5 for both on
+# v0.37.1 — a single fat Mach-O carrying an x86_64 and an arm64 slice,
+# published twice under the two names. Each platform key still resolves the
+# asset upstream labels for it.)
+assets:
+  linux/amd64:
+    - "^geckodriver-v.*-linux64\\.tar\\.gz$"
+  linux/arm64:
+    - "^geckodriver-v.*-linux-aarch64\\.tar\\.gz$"
+  # ─── Staged rollout (Phase 10): linux first, then darwin, then windows.
+  # Pre-written, uncommented one pass at a time BY HAND (never by sed — a sed
+  # replacement rewrites `\\.` to `\.` inside these patterns). Each pass must
+  # uncomment the matching `platforms:` entry below in the same commit.
+  # darwin/amd64:
+  #   - "^geckodriver-v.*-macos\\.tar\\.gz$"
+  # darwin/arm64:
+  #   - "^geckodriver-v.*-macos-aarch64\\.tar\\.gz$"
+  # windows/amd64:
+  #   - "^geckodriver-v.*-win64\\.zip$"
+  # windows/arm64:
+  #   - "^geckodriver-v.*-win-aarch64\\.zip$"
+
+asset_type:
+  # `strip_components: 0` — and that is NOT the sccache shape. Upstream's
+  # archives have NO wrapper directory at all: the tarball's only member is the
+  # executable itself, at the archive root.
+  #
+  #   $ tar tzvf geckodriver-v0.37.1-linux64.tar.gz
+  #   -rwxr-xr-x worker/worker 6029440 2026-07-17 11:35 geckodriver
+  #   $ unzip -l geckodriver-v0.37.1-win64.zip
+  #     4075136  07-17-2026 09:33   geckodriver.exe
+  #
+  # Stripping one component off a flat archive would discard the only entry.
+  # With 0 the executable lands at the bundle content root, so metadata.json's
+  # PATH is a bare ${installPath} — legal here because ../mirror-base.yml sets
+  # `bin_scan: off`; `auto`/`verify` on a bare PATH is rejected at spec load
+  # with exit 65. `binaries` is hand-listed in metadata.json instead.
+  #
+  # Identical layout on every platform (linux tar.gz, macos tar.gz, windows
+  # zip), so no per-platform override.
+  type: archive
+  strip_components: 0
+
+metadata:
+  default: metadata.json
+
+catalog:
+  logo: logo.svg
+
+versions:
+  # v0.36.0 is the floor: it is the oldest release whose asset set covers every
+  # platform this mirror declares. Nothing in range is asset-less.
+  min: "0.36.0"
+  new_per_run: 5
+  poll_interval: "6 */6 * * *"
+
+tests:
+  # `script:` resolves from the REPOSITORY ROOT — unlike `metadata.default` and
+  # `catalog.logo` above, which resolve against this spec's own directory.
+  - name: smoke
+    script: geckodriver/tests/smoke.star
+
+# ─── Platform matrix — RESTATED IN FULL, not merged ─────────────────────────
+#
+# `extends:` is a SHALLOW merge of top-level keys: setting `platforms:` here
+# replaces ../mirror-base.yml's block OUTRIGHT. It is restated in full and
+# deliberately.
+#
+# The reason is the STAGED ROLLOUT, not a libc disagreement — the measurement
+# above agrees with the base's exactly (static on both Linux arches ⇒ bare keys
+# ⇒ ubuntu + alpine + fedora). A platform declared here but absent from
+# `assets:` still boots a real runner and reports SUCCESS having tested
+# nothing, so pass 1 declares only the two platforms whose assets are verified
+# present. The darwin/windows entries are pre-written as comments and are
+# uncommented together with their `assets:` keys, one pass at a time.
+#
+# The alpine leg IS the proof of the bare key. Ubuntu (glibc) + fedora (a
+# different glibc vintage) + alpine (musl) is what turns "requires nothing of
+# the host" into evidence; drop alpine and the claim is merely asserted.
+platforms:
+  linux/amd64:
+    runner: ubuntu-latest
+    containers:
+      - { image: "ubuntu:24.04", shell: bash }
+      - { image: "alpine:3.20",  shell: sh }
+      - { image: "fedora:40",    shell: bash }
+  linux/arm64:
+    # arm64 container legs run natively — no qemu — so the runner arch must
+    # match the platform or the renderer reds the leg up front.
+    runner: ubuntu-24.04-arm
+    containers:
+      - { image: "ubuntu:24.04", shell: bash }
+      - { image: "alpine:3.20",  shell: sh }
+      - { image: "fedora:40",    shell: bash }
+  # Pass 2 — darwin. Both slices come off the SAME universal binary, so the
+  # Intel leg is tested on the arm64 macos-14 runner under Rosetta 2;
+  # GitHub's native macos-13 Intel pool is exhausted and deadlocks push.
+  # darwin/amd64:
+  #   runner: macos-14
+  #   prefix: ["arch", "-x86_64"]
+  # darwin/arm64:
+  #   runner: macos-14
+  #   shell: bash
+  # Pass 3 — windows. `windows-11-arm` is native; the amd64 pool cannot
+  # execute an ARM64 PE. The smoke test already branches to `geckodriver.exe`.
+  # windows/amd64:
+  #   runner: windows-latest
+  #   shell: pwsh
+  # windows/arm64:
+  #   runner: windows-11-arm
+  #   shell: pwsh
+  #
+  # No `containers:` on darwin or windows — those runners have no Linux
+  # container engine, and the key is rejected at spec load.
+
+annotations:
+  # From the Phase 1.5 license gate:
+  #   $ gh api repos/mozilla/geckodriver/license --jq '.license.spdx_id'
+  #   MPL-2.0
+  # Weak (file-level) copyleft: binary redistribution is granted, and the
+  # share-alike duty attaches to modified MPL-covered source files, of which
+  # this mirror has none — it republishes upstream's own bytes unchanged. The
+  # source-conveyance pointer is recorded in ../NOTICE.md.
+  org.opencontainers.image.licenses: "MPL-2.0"
+
+announce:
+  # Spelled out, not derived from target.repository — the logical name and the
+  # physical path are related by convention only.
+  package: mozilla/geckodriver
+  fork: ocx-contrib/index
