@@ -111,10 +111,10 @@ assets:
     - "^geckodriver-v.*-macos\\.tar\\.gz$"
   darwin/arm64:
     - "^geckodriver-v.*-macos-aarch64\\.tar\\.gz$"
-  # windows/amd64:
-  #   - "^geckodriver-v.*-win64\\.zip$"
-  # windows/arm64:
-  #   - "^geckodriver-v.*-win-aarch64\\.zip$"
+  windows/amd64:
+    - "^geckodriver-v.*-win64\\.zip$"
+  windows/arm64:
+    - "^geckodriver-v.*-win-aarch64\\.zip$"
 
 asset_type:
   # `strip_components: 0` — and that is NOT the sccache shape. Upstream's
@@ -199,12 +199,12 @@ platforms:
     shell: bash
   # Pass 3 — windows. `windows-11-arm` is native; the amd64 pool cannot
   # execute an ARM64 PE. The smoke test already branches to `geckodriver.exe`.
-  # windows/amd64:
-  #   runner: windows-latest
-  #   shell: pwsh
-  # windows/arm64:
-  #   runner: windows-11-arm
-  #   shell: pwsh
+  windows/amd64:
+    runner: windows-latest
+    shell: pwsh
+  windows/arm64:
+    runner: windows-11-arm
+    shell: pwsh
   #
   # No `containers:` on darwin or windows — those runners have no Linux
   # container engine, and the key is rejected at spec load.
