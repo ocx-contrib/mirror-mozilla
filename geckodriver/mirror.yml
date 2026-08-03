@@ -107,10 +107,10 @@ assets:
   # Pre-written, uncommented one pass at a time BY HAND (never by sed — a sed
   # replacement rewrites `\\.` to `\.` inside these patterns). Each pass must
   # uncomment the matching `platforms:` entry below in the same commit.
-  # darwin/amd64:
-  #   - "^geckodriver-v.*-macos\\.tar\\.gz$"
-  # darwin/arm64:
-  #   - "^geckodriver-v.*-macos-aarch64\\.tar\\.gz$"
+  darwin/amd64:
+    - "^geckodriver-v.*-macos\\.tar\\.gz$"
+  darwin/arm64:
+    - "^geckodriver-v.*-macos-aarch64\\.tar\\.gz$"
   # windows/amd64:
   #   - "^geckodriver-v.*-win64\\.zip$"
   # windows/arm64:
@@ -191,12 +191,12 @@ platforms:
   # Pass 2 — darwin. Both slices come off the SAME universal binary, so the
   # Intel leg is tested on the arm64 macos-14 runner under Rosetta 2;
   # GitHub's native macos-13 Intel pool is exhausted and deadlocks push.
-  # darwin/amd64:
-  #   runner: macos-14
-  #   prefix: ["arch", "-x86_64"]
-  # darwin/arm64:
-  #   runner: macos-14
-  #   shell: bash
+  darwin/amd64:
+    runner: macos-14
+    prefix: ["arch", "-x86_64"]
+  darwin/arm64:
+    runner: macos-14
+    shell: bash
   # Pass 3 — windows. `windows-11-arm` is native; the amd64 pool cannot
   # execute an ARM64 PE. The smoke test already branches to `geckodriver.exe`.
   # windows/amd64:
