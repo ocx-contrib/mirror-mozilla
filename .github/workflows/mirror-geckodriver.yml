@@ -6,7 +6,7 @@ name: geckodriver
 
 on:
   schedule:
-    - cron: '6 */6 * * *'
+    - cron: '33 0-23/6 * * *'
   workflow_dispatch:
   push:
     branches: [main]
