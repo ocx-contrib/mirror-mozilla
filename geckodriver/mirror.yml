@@ -189,13 +189,13 @@ platforms:
       - { image: "alpine:3.20",  shell: sh }
       - { image: "fedora:40",    shell: bash }
   # Pass 2 — darwin. Both slices come off the SAME universal binary, so the
-  # Intel leg is tested on the arm64 macos-14 runner under Rosetta 2;
+  # Intel leg is tested on the arm64 macos-15 runner under Rosetta 2;
   # GitHub's native macos-13 Intel pool is exhausted and deadlocks push.
   darwin/amd64:
-    runner: macos-14
+    runner: macos-15
     prefix: ["arch", "-x86_64"]
   darwin/arm64:
-    runner: macos-14
+    runner: macos-15
     shell: bash
   # Pass 3 — windows. `windows-11-arm` is native; the amd64 pool cannot
   # execute an ARM64 PE. The smoke test already branches to `geckodriver.exe`.
